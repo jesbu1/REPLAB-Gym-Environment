@@ -69,9 +69,10 @@ class ReplabEnv(gym.Env):
         pass
 
     def _take_action(self, action):
-        action.extend([-0.008369006790373335, -0.008369006790373335])
-        self.widowx.move_to_target(action)
-        pass
+        val = self.widowx.move_to_position(action[0], action[1], action[2])
+        if val == False:
+            #Couldn't move
+            pass
         
     def _get_goal_status(self):
         pass

@@ -170,7 +170,18 @@ class WidowX:
             return False
 
         return self.commander.execute(plan, wait=True)
+    def move_to_position(self, x, y, z):
+        current_p = self.get_current_pose()
+        p1 = Pose(position=Point(x=x, y=y, z=z))
+        plan, f = self.commander.compute_cartesian_path(
+                              [current_p, p1], 0.001, 0.0)
 
+        joint_goal = list(plan.joint_trajectory.points[-1].positions)
+        try:
+            plan = self.commander.plan(joint_goal)
+        except MoveItCommanderException as e:
+            return False
+        return True
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose
         current_angle = self.get_joint_values()[4]
