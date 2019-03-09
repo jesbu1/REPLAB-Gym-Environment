@@ -179,7 +179,7 @@ class WidowX:
             plan = self.commander.plan(joint_goal)
         except MoveItCommanderException as e:
             return False
-        return True
+        return self.commander.execute(plan, wait=True)
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose
         current_angle = self.get_joint_values()[4]
