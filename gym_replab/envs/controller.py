@@ -169,7 +169,7 @@ class WidowX:
 
         return self.commander.execute(plan, wait=True)
     def move_to_position(self, x, y, z):
-        current_p = self.get_current_pose()
+        current_p = self.get_current_pose().pose
         p1 = Pose(position=Point(x=x, y=y, z=z))
         plan, f = self.commander.compute_cartesian_path(
                               [current_p, p1], 0.001, 0.0)
