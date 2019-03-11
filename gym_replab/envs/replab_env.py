@@ -4,6 +4,7 @@ from gym.utils import seeding
 
 
 
+from operator import add
 from controller import *
 import numpy as np
 from config import *
@@ -79,10 +80,12 @@ class ReplabEnv(gym.Env):
 
     def _get_reward(self, goal):
         """ Reward is negative L2 distance from objective, squared """
+        
         return - (np.linalg.norm(np.array(goal) - np.array(self._get_state()))**2)
 
     def _get_state(self):
         """
         get_current_pose returns obj with pose(with acctributes posiiton, orientation)
         """
-        return self.widowx.get_current_pose().pose.position
+        pos = self.widowx.get_current_pose().pose.position
+        return [pos.x, pos.y, pos.z]

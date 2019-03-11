@@ -35,45 +35,43 @@ class WidowX:
 
         rospy.sleep(2)
 
-        # if boundaries:
-        #     self.add_bounds()
+        self.add_bounds()
 
     def add_bounds(self):
         floor = PoseStamped()
         floor.header.frame_id = self.commander.get_planning_frame()
         floor.pose.position.x = 0
         floor.pose.position.y = 0
-        floor.pose.position.z = .5
+        floor.pose.position.z = .43
         self.scene.add_box('floor', floor, (1., 1., .001))
 
         leftWall = PoseStamped()
         leftWall.header.frame_id = self.commander.get_planning_frame()
-        leftWall.pose.position.x = .16
+        leftWall.pose.position.x = .2
         leftWall.pose.position.y = 0
         leftWall.pose.position.z = .475
-        self.scene.add_box('leftWall', leftWall, (.001, .35, .08))
+        self.scene.add_box('leftWall', leftWall, (.001, .8, 1))
 
         rightWall = PoseStamped()
         rightWall.header.frame_id = self.commander.get_planning_frame()
-        rightWall.pose.position.x = -.16
+        rightWall.pose.position.x = -.2
         rightWall.pose.position.y = 0
         rightWall.pose.position.z = .475
-        self.scene.add_box('rightWall', rightWall, (.001, .35, .08))
+        self.scene.add_box('rightWall', rightWall, (.001, .8, 1))
 
         frontWall = PoseStamped()
         frontWall.header.frame_id = self.commander.get_planning_frame()
         frontWall.pose.position.x = 0
-        frontWall.pose.position.y = -.14
+        frontWall.pose.position.y = -.23
         frontWall.pose.position.z = .475
-        self.scene.add_box('frontWall', frontWall, (.35, .001, .08))
+        self.scene.add_box('frontWall', frontWall, (1, .001, 1))
 
         backWall = PoseStamped()
         backWall.header.frame_id = self.commander.get_planning_frame()
         backWall.pose.position.x = 0
-        backWall.pose.position.y = .14
+        backWall.pose.position.y = .36
         backWall.pose.position.z = .475
-        self.scene.add_box('backWall', backWall, (.35, .001, .08))
-
+        self.scene.add_box('backWall', backWall, (1, .001, 1))
     def remove_bounds(self):
         for obj in self.scene.get_objects().keys():
             self.scene.remove_world_object(obj)
@@ -171,7 +169,7 @@ class WidowX:
 
         return self.commander.execute(plan, wait=True)
     def move_to_position(self, x, y, z):
-        current_p = self.get_current_pose()
+        current_p = self.get_current_pose().pose
         p1 = Pose(position=Point(x=x, y=y, z=z))
         plan, f = self.commander.compute_cartesian_path(
                               [current_p, p1], 0.001, 0.0)
@@ -181,7 +179,7 @@ class WidowX:
             plan = self.commander.plan(joint_goal)
         except MoveItCommanderException as e:
             return False
-        return True
+        return self.commander.execute(plan, wait=True)
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose
         current_angle = self.get_joint_values()[4]
