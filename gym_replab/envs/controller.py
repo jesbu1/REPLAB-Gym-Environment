@@ -34,8 +34,12 @@ class WidowX:
         self.commander.set_end_effector_link('gripper_rail_link')
 
         rospy.sleep(2)
-
-        self.add_bounds()
+        self.bounds_floor = .435
+        self.bounds_leftWall = .119
+        self.bounds_rightWall = -.119
+        self.bounds_frontWall = -.229
+        self.bounds_backWall = .359
+        #self.add_bounds()
 
     def add_bounds(self):
         floor = PoseStamped()
@@ -169,6 +173,18 @@ class WidowX:
 
         return self.commander.execute(plan, wait=True)
     def move_to_position(self, x, y, z):
+        if not (x <= self.bounds_leftWall):
+            x = self.bounds_leftWall
+        if not (x >= self.bounds_rightWall):
+            x = self.bounds_rightWall
+        if not (y <= self.bounds_backWall):
+            y = self.bounds_backWall
+        if not (y >= self.bounds_frontWall):
+            y = self.bounds_frontWall
+        if not (z <= self.bounds_floor):
+            z = self.bounds_floor
+        if not z >= 0:
+            z = 0
         current_p = self.get_current_pose().pose
         p1 = Pose(position=Point(x=x, y=y, z=z))
         plan, f = self.commander.compute_cartesian_path(
@@ -179,7 +195,11 @@ class WidowX:
             plan = self.commander.plan(joint_goal)
         except MoveItCommanderException as e:
             return False
-        return self.commander.execute(plan, wait=True)
+        success = self.commander.execute(plan, wait=True)
+        print("SUCCESS" if success else 'FAIL')
+        if not success:
+            self.move_to_reset()
+        return success
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose
         current_angle = self.get_joint_values()[4]

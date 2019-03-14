@@ -17,6 +17,7 @@ class ReplabEnv(gym.Env):
     def __init__(self, boundaries=True):
         rospy.init_node("widowx-custom_controller")
         self.widowx = WidowX(boundaries)
+        self.widowx.move_to_reset()
 
 
     def step(self, action):
@@ -61,7 +62,7 @@ class ReplabEnv(gym.Env):
         return ob, reward, episode_over, {}
 
     def reset(self):
-        self.widowx.move_to_neutral()
+        self.widowx.move_to_reset()
 
     def render(self, mode='human', close=False):
         pass
