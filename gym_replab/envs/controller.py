@@ -34,12 +34,12 @@ class WidowX:
         self.commander.set_end_effector_link('gripper_rail_link')
 
         rospy.sleep(2)
-        self.bounds_floor = .435
-        self.bounds_leftWall = .119
-        self.bounds_rightWall = -.119
-        self.bounds_frontWall = -.229
-        self.bounds_backWall = .359
-        #self.add_bounds()
+        self.bounds_floor = .434
+        self.bounds_leftWall = .118
+        self.bounds_rightWall = -.118
+        self.bounds_frontWall = -.228
+        self.bounds_backWall = .358
+        self.add_bounds()
 
     def add_bounds(self):
         floor = PoseStamped()
@@ -189,12 +189,13 @@ class WidowX:
         p1 = Pose(position=Point(x=x, y=y, z=z))
         plan, f = self.commander.compute_cartesian_path(
                               [current_p, p1], 0.001, 0.0)
-
-        joint_goal = list(plan.joint_trajectory.points[-1].positions)
-        try:
-            plan = self.commander.plan(joint_goal)
-        except MoveItCommanderException as e:
-            return False
+        print("CURRENT POSE: " + str(current_p))
+        print("F: %0.3f" % (f))
+        #joint_goal = list(plan.joint_trajectory.points[-1].positions)
+        #try:
+        #    plan = self.commander.plan(joint_goal)
+        #except MoveItCommanderException as e:
+        #    return False
         success = self.commander.execute(plan, wait=True)
         print("SUCCESS" if success else 'FAIL')
         if not success:

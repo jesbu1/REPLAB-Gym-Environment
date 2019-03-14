@@ -2,6 +2,7 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
+from std_msgs.msg import String
 
 
 from operator import add
@@ -10,7 +11,6 @@ import numpy as np
 from config import *
 import rospy
 
-
 class ReplabEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
@@ -18,7 +18,8 @@ class ReplabEnv(gym.Env):
         rospy.init_node("widowx-custom_controller")
         self.widowx = WidowX(boundaries)
         self.widowx.move_to_reset()
-
+        self.reset_publisher = rospy.Publisher("/replab/reset", String)
+        self.reset_subscriber = rospy.Subscriber("/replab/reset/finished", String, reset_checker)
 
     def step(self, action):
         """
@@ -62,7 +63,10 @@ class ReplabEnv(gym.Env):
         return ob, reward, episode_over, {}
 
     def reset(self):
-        self.widowx.move_to_reset()
+        self.reset_publisher.publish("RESET")
+        rospy.wait_for_message("/replab/reset/finished", String)
+        return
+
 
     def render(self, mode='human', close=False):
         pass
