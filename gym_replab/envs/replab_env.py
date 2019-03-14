@@ -73,24 +73,3 @@ class ReplabEnv(gym.Env):
 
     def close(self):
         pass
-
-    def _take_action(self, action):
-        val = self.widowx.move_to_position(action[0], action[1], action[2])
-        if val == False:
-            #Couldn't move
-            pass
-        
-    def _get_goal_status(self):
-        pass
-
-    def _get_reward(self, goal):
-        """ Reward is negative L2 distance from objective, squared """
-        
-        return - (np.linalg.norm(np.array(goal) - np.array(self._get_state()))**2)
-
-    def _get_state(self):
-        """
-        get_current_pose returns obj with pose(with acctributes posiiton, orientation)
-        """
-        pos = self.widowx.get_current_pose().pose.position
-        return [pos.x, pos.y, pos.z]
