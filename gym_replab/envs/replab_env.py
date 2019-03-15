@@ -81,6 +81,7 @@ class ReplabEnv(gym.Env):
 
     def close(self):
         pass
+<<<<<<< HEAD
 
     def _take_action(self, action):
         val = self.widowx.move_to_position(action[0], action[1], action[2])
@@ -102,3 +103,5 @@ class ReplabEnv(gym.Env):
         """
         pos = self.widowx.get_current_pose().pose.position
         return [pos.x, pos.y, pos.z]
+=======
+>>>>>>> 70c8351c998ed8f38a2e2ee26a95c0b24e1dbd34
