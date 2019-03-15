@@ -18,12 +18,15 @@ class ReplabEnv(gym.Env):
 
     def __init__(self, boundaries=True):
         rospy.init_node("widowx-custom_controller")
-        self.widowx = WidowX(boundaries)
-        self.widowx.move_to_reset()
+
         self.reset_publisher = rospy.Publisher("/replab/reset", String, queue_size=1)
         self.reset_subscriber = rospy.Subscriber("/replab/reset/finished", String, reset_checker)
         self.action_publisher = rospy.Publisher("/replab/action", numpy_msg(Floats), queue_size=1)
         rospy.init_node('replab_gym_node')
+        self.current_pos = np.array([0.015339807878856412, -1.2931458041875956, 1.0109710760673565], dtype=np.float32)
+        #Hardcoded goal for now
+        self.goal = np.array([-0.042, 0.5, 0.05])
+        self.reset()
         
     def step(self, action):
         """
@@ -55,53 +58,26 @@ class ReplabEnv(gym.Env):
                  use this for learning.
         """
         action = np.array(action, dtype=np.float32)
+        target_pos = np.add(action, self.current_pos)
+
         self.action_publisher.publish(action)
-        rospy.wait_for_message("/replab/action/finished", String)
+        self.current_pos = rospy.wait_for_message("/replab/action/observation", numpy_msg(Floats)).data
 
-        current_pos = self._get_state()
-
-        goal = list(map(add, action, current_pos))
-
-        self._take_action(goal)
-
-        reward = self._get_reward(goal)
-        ob = self._get_state()
+        reward = self._get_reward(self.goal)
 
         episode_over = False
-        return ob, reward, episode_over, {}
+        return self.current_pos, reward, episode_over, {}
 
     def reset(self):
         self.reset_publisher.publish(String("RESET"))
         rospy.wait_for_message("/replab/reset/finished", String)
         return
 
+    def _get_reward(self, goal):
+        return - (np.linalg.norm(self.current_pos - goal) ** 2)
 
     def render(self, mode='human', close=False):
         pass
 
     def close(self):
         pass
-<<<<<<< HEAD
-
-    def _take_action(self, action):
-        val = self.widowx.move_to_position(action[0], action[1], action[2])
-        if val == False:
-            #Couldn't move
-            pass
-        
-    def _get_goal_status(self):
-        pass
-
-    def _get_reward(self, state, goal):
-        """ Reward is negative L2 distance from objective, squared """
-        
-        return - (np.linalg.norm(np.array(goal) - np.array(self._get_state()))**2)
-
-    def _get_state(self):
-        """
-        get_current_pose returns obj with pose(with acctributes posiiton, orientation)
-        """
-        pos = self.widowx.get_current_pose().pose.position
-        return [pos.x, pos.y, pos.z]
-=======
->>>>>>> 70c8351c998ed8f38a2e2ee26a95c0b24e1dbd34

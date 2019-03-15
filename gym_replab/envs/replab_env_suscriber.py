@@ -12,6 +12,7 @@ from rospy.numpy_msg import numpy_msg
 widowx = WidowX(boundaries)
 
 reset_publisher = rospy.Publisher("/replab/reset/finished", String)
+observation_publisher = rospy.Publisher("/replab/action/observation", numpy_msg(Floats), queue_size=1)
 
 def get_state():
 	pos = widowx.get_current_pose().pose.position
@@ -22,13 +23,20 @@ def get_reward(goal):
 	return -(np.linalg.norm(np.array(goal) - np.array(get_state()))**2)
 
 def take_action(data):
+	"""
+	Publishes [current x, current y, current z]
+	"""
 	action = data.data
+	current_pos = np.array(self.get_state(), dtype=np.float32)
+	goal = np.add(action, current_pos)
 	widowx.move_to_position(action[0], action[1], action[2])
+	current_state = np.array(get_state(), dtype=np.float32)
+	observation_publisher.publish(current_state)
 
 def reset(data):
 	widowx.move_to_reset()
 	reset_publisher.publish(String("Finished Reset"))
-
+"""
 def take_action(action):
 	current_pos = get_state()
 	action = ast.literal_eval(str(action))
@@ -43,7 +51,7 @@ def take_action(action):
 
 	ret_obj = [ob, reward, episode_over, {}]
 	return ret_obj
-
+"""
 
 
 
