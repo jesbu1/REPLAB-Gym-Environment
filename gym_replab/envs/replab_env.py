@@ -2,14 +2,16 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
-from std_msgs.msg import String
 
 
-from operator import add
 from controller import *
 import numpy as np
 from config import *
+
 import rospy
+from rospy.numpy_msg import numpy_msg
+from rospy_tutorials.msg import Floats
+from std_msgs.msg import String
 
 class ReplabEnv(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -18,9 +20,11 @@ class ReplabEnv(gym.Env):
         rospy.init_node("widowx-custom_controller")
         self.widowx = WidowX(boundaries)
         self.widowx.move_to_reset()
-        self.reset_publisher = rospy.Publisher("/replab/reset", String)
+        self.reset_publisher = rospy.Publisher("/replab/reset", String, queue_size=1)
         self.reset_subscriber = rospy.Subscriber("/replab/reset/finished", String, reset_checker)
-
+        self.action_publisher = rospy.Publisher("/replab/action", numpy_msg(Floats), queue_size=1)
+        rospy.init_node('replab_gym_node')
+        
     def step(self, action):
         """
 
@@ -50,6 +54,10 @@ class ReplabEnv(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
+        action = np.array(action, dtype=np.float32)
+        self.action_publisher.publish(action)
+        rospy.wait_for_message("/replab/action/finished", String)
+
         current_pos = self._get_state()
 
         goal = list(map(add, action, current_pos))
@@ -63,7 +71,7 @@ class ReplabEnv(gym.Env):
         return ob, reward, episode_over, {}
 
     def reset(self):
-        self.reset_publisher.publish("RESET")
+        self.reset_publisher.publish(String("RESET"))
         rospy.wait_for_message("/replab/reset/finished", String)
         return
 
@@ -83,7 +91,7 @@ class ReplabEnv(gym.Env):
     def _get_goal_status(self):
         pass
 
-    def _get_reward(self, goal):
+    def _get_reward(self, state, goal):
         """ Reward is negative L2 distance from objective, squared """
         
         return - (np.linalg.norm(np.array(goal) - np.array(self._get_state()))**2)
