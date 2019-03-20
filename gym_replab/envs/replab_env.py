@@ -4,9 +4,8 @@ from gym.utils import seeding
 
 
 
-from controller import *
 import numpy as np
-from config import *
+
 
 import rospy
 from rospy.numpy_msg import numpy_msg
