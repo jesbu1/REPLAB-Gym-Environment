@@ -9,24 +9,37 @@ import numpy as np
 
 import rospy
 from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
+from std_msgs.msg import Float32
 from std_msgs.msg import String
 
 class ReplabEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, boundaries=True):
-        rospy.init_node("widowx-custom_controller")
-
+        rospy.init_node("widowx_custom_controller")
+        self.observation_space = spaces.Box(low=np.array([-.118, -.228, 0]), high=np.array([.118, .358, .434]))
+        self.action_space = spaces.Box(low = np.array([-0.01, -0.01, -0.01]), high = np.array([0.01, 0.01, 0.01]))
         self.reset_publisher = rospy.Publisher("/replab/reset", String, queue_size=1)
-        self.reset_subscriber = rospy.Subscriber("/replab/reset/finished", String, reset_checker)
-        self.action_publisher = rospy.Publisher("/replab/action", numpy_msg(Floats), queue_size=1)
-        rospy.init_node('replab_gym_node')
+        self.task_finished_subscriber = rospy.Subscriber("/replab/finished", String, self.task_toggle)
+        self.task_finished = False
+        
+        self.action_publisher = rospy.Publisher("/replab/action", numpy_msg(Float32), queue_size=1)
+        rospy.sleep(2)
+        self.current_position_subscriber = rospy.Subscriber("/replab/action/observation", numpy_msg(Float32), self.update_position)
+
         self.current_pos = np.array([0.015339807878856412, -1.2931458041875956, 1.0109710760673565], dtype=np.float32)
         #Hardcoded goal for now
         self.goal = np.array([-0.042, 0.5, 0.05])
         self.reset()
-        
+    def update_position(self, x):
+        self.current_pos = np.array(x.data)
+    def task_toggle(self, _):
+        self.task_finished = not self.task_finished
+    def wait_for_task(self):
+        while self.task_finished is False:
+            continue
+        self.task_toggle(None)
+            
     def step(self, action):
         """
 
@@ -58,9 +71,10 @@ class ReplabEnv(gym.Env):
         """
         action = np.array(action, dtype=np.float32)
         target_pos = np.add(action, self.current_pos)
-
+        
         self.action_publisher.publish(action)
-        self.current_pos = rospy.wait_for_message("/replab/action/observation", numpy_msg(Floats)).data
+        self.wait_for_task()
+        self.task_toggle
 
         reward = self._get_reward(self.goal)
 
@@ -69,7 +83,7 @@ class ReplabEnv(gym.Env):
 
     def reset(self):
         self.reset_publisher.publish(String("RESET"))
-        rospy.wait_for_message("/replab/reset/finished", String)
+        self.wait_for_task()
         return
 
     def _get_reward(self, goal):

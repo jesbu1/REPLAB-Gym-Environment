@@ -5,15 +5,19 @@ import numpy as np
 
 import rospy
 from std_msgs.msg import String
-from rospy_tutorials.msg import Floats
+from std_msgs.msg import Float32
 from rospy.numpy_msg import numpy_msg
 
+widowx = None
+def activate_widowx():
+    global widowx
+    widowx = WidowX(True)
 
-widowx = WidowX(boundaries)
 
-reset_publisher = rospy.Publisher("/replab/reset/finished", String)
-observation_publisher = rospy.Publisher("/replab/action/observation", numpy_msg(Floats), queue_size=1)
 
+finished_publisher = rospy.Publisher("/replab/finished", String, queue_size=1)
+observation_publisher = rospy.Publisher("/replab/action/observation", numpy_msg(Float32), queue_size=1)
+rospy.sleep(2)
 def get_state():
 	pos = widowx.get_current_pose().pose.position
 	return [pos.x, pos.y, pos.z]
@@ -27,40 +31,24 @@ def take_action(data):
 	Publishes [current x, current y, current z]
 	"""
 	action = data.data
-	current_pos = np.array(self.get_state(), dtype=np.float32)
+	current_pos = np.array(get_state(), dtype=np.float32)
 	goal = np.add(action, current_pos)
-	widowx.move_to_position(action[0], action[1], action[2])
+	widowx.move_to_position(float(action[0]), float(action[1]), float(action[2]))
 	current_state = np.array(get_state(), dtype=np.float32)
 	observation_publisher.publish(current_state)
+	finished_publisher.publish(String("Finished"))
 
 def reset(data):
 	widowx.move_to_reset()
-	reset_publisher.publish(String("Finished Reset"))
-"""
-def take_action(action):
-	current_pos = get_state()
-	action = ast.literal_eval(str(action))
-
-	goal = list(map(add, action, current_pos))
-
-	take_action(goal)
-	reward = get_reward(goal)
-	ob = get_state()
-
-	episode_over = False
-
-	ret_obj = [ob, reward, episode_over, {}]
-	return ret_obj
-"""
-
-
+	finished_publisher.publish(String("Finished"))
 
 def listener():
-	action_subscriber = rospy.Subscriber("/replab/step", String, take_action)
+	action_subscriber = rospy.Subscriber("/replab/action", numpy_msg(Float32), take_action)
 	reset_subscriber = rospy.Subscriber("/replab/reset", String, reset)
-	rospy.init_node('replab_gym_node')
+	activate_widowx()
 	rospy.spin()
 
 if __name__ == "__main__":
-	listener()
+    rospy.init_node('replab_gym_node')
+    listener()
 
