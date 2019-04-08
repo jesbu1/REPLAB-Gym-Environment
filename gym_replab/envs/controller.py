@@ -14,6 +14,7 @@ from geometry_msgs.msg import (
 from moveit_commander import *
 from moveit_msgs.srv import *
 from arbotix_msgs.srv import *
+from moveit_msgs.msg import *
 
 from moveit_commander.exception import MoveItCommanderException
 
@@ -32,21 +33,33 @@ class WidowX:
         self.gripper = MoveGroupCommander("widowx_gripper")
 
         self.commander.set_end_effector_link('gripper_rail_link')
-
+        self
         rospy.sleep(2)
-        self.bounds_floor = .434
-        self.bounds_leftWall = .118
-        self.bounds_rightWall = -.118
-        self.bounds_frontWall = -.228
-        self.bounds_backWall = .358
-        self.add_bounds()
-
+        self.bounds_floor = .38
+        self.bounds_leftWall = .11
+        self.bounds_rightWall = -.11
+        self.bounds_frontWall = -.22
+        self.bounds_backWall = .22
+        self.joint_state_subscriber = rospy.Subscriber("/joint_states", JointState, self.set_joint_state)
+        
+        #self.add_bounds()
+        
+    def get_ik_client(self, request):
+        rospy.wait_for_service('/compute_ik')
+        inverse_ik = rospy.ServiceProxy('/compute_ik', GetPositionIK)
+        ret = inverse_ik(request)
+        if ret.error_code.val != 1:
+            return None
+        return ret.solution.joint_state
+    def set_joint_state(self, x):
+        self.joint_state = x
+        
     def add_bounds(self):
         floor = PoseStamped()
         floor.header.frame_id = self.commander.get_planning_frame()
         floor.pose.position.x = 0
         floor.pose.position.y = 0
-        floor.pose.position.z = .43
+        floor.pose.position.z = .42
         self.scene.add_box('floor', floor, (1., 1., .001))
 
         leftWall = PoseStamped()
@@ -73,7 +86,7 @@ class WidowX:
         backWall = PoseStamped()
         backWall.header.frame_id = self.commander.get_planning_frame()
         backWall.pose.position.x = 0
-        backWall.pose.position.y = .36
+        backWall.pose.position.y = .23
         backWall.pose.position.z = .475
         self.scene.add_box('backWall', backWall, (1, .001, 1))
     def remove_bounds(self):
@@ -183,23 +196,39 @@ class WidowX:
             y = self.bounds_frontWall
         if not (z <= self.bounds_floor):
             z = self.bounds_floor
-        if not z >= 0:
-            z = 0
+        if not z >= 0.15:
+            z = 0.15
+        print(str(x), str(y), str(z))
         current_p = self.get_current_pose().pose
         p1 = Pose(position=Point(x=x, y=y, z=z))
-        plan, f = self.commander.compute_cartesian_path(
-                              [current_p, p1], 0.001, 0.0)
+        self.commander.set_position_target([x, y, z])
+        possible_plans = []
+        
+        robot_state = RobotState()
+        robot_state.joint_state = self.joint_state
+        pose_stamped = PoseStamped()
+        pose_stamped.pose = p1
+        ik_request = PositionIKRequest()
+        ik_request.robot_state = robot_state
+        ik_request.pose_stamped = pose_stamped 
+        ik_request.ik_link_name = "gripper_rail_link"
+        ik_request.group_name = "widowx_arm"
+
+        
+        joint_goal = self.get_ik_client(ik_request)
+ 
         print("CURRENT POSE: " + str(current_p))
-        print("F: %0.3f" % (f))
-        #joint_goal = list(plan.joint_trajectory.points[-1].positions)
-        #try:
-        #    plan = self.commander.plan(joint_goal)
-        #except MoveItCommanderException as e:
-        #    return False
+
+
+        try:
+            plan = self.commander.plan(joint_goal)
+        except MoveItCommanderException as e:
+            self.move_to_reset()
+            return False
         success = self.commander.execute(plan, wait=True)
-        print("SUCCESS" if success else 'FAIL')
         if not success:
             self.move_to_reset()
+        print("NEW POSE: %s" % (str(self.get_current_pose().pose)))
         return success
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose

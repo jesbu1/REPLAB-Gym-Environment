@@ -46,18 +46,6 @@ FROMADDR = ''
 FROMADDR_PASSWORD = ''
 
 
-# ARENA BOUNDARIES
-# WARNING: modifying these values may lead to unsafe/volatile arm behavior
-# END_EFFECTOR_BOUNDS = [(.12,  .1),
-#                        (.13, -.10),
-#                        (-.13, -.1),
-#                        (-.11,  .10)]
-
-END_EFFECTOR_BOUNDS = [(.15,  .13),
-                       (.16, -.13),
-                       (-.16, -.13),
-                       (-.14,  .13)]
-
 # CONTROLLER CONSTANTS AND PREPLANNED ROUTINES
 DROPPING_VALUES = [0.0, -1.418932228794218,
                    1.3575729972787924, -0.8512816004258118, 0.0]
