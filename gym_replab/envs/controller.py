@@ -4,6 +4,7 @@
 # Author: Dian Chen (dianchen@berkeley.edu)
 
 import rospy
+from std_msgs.msg import Float64
 from geometry_msgs.msg import (
     PointStamped,
     Point,
@@ -24,7 +25,6 @@ import traceback
 
 from config import *
 
-
 class WidowX:
 
     def __init__(self, boundaries=False):
@@ -33,16 +33,25 @@ class WidowX:
         self.gripper = MoveGroupCommander("widowx_gripper")
 
         self.commander.set_end_effector_link('gripper_rail_link')
-        self
-        rospy.sleep(2)
-        self.bounds_floor = .38
-        self.bounds_leftWall = .11
-        self.bounds_rightWall = -.11
-        self.bounds_frontWall = -.22
-        self.bounds_backWall = .22
+
+        self.bounds_floor = .40
+        self.bounds_leftWall = .15
+        self.bounds_rightWall = -.15
+        self.bounds_frontWall = -.15
+        self.bounds_backWall = .15
         self.joint_state_subscriber = rospy.Subscriber("/joint_states", JointState, self.set_joint_state)
         
+        self.joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5']
+        self.joint_pubs = [rospy.Publisher('/%s/command' % name, Float64, queue_size=1) for name in self.joint_names]
+        self.gripper_pub = rospy.Publisher('/gripper_prismatic_joint/command', Float64, queue_size=1)
+        rospy.sleep(2)
         #self.add_bounds()
+        
+    def joint_states_cb(self, data):
+        if len(data.name) == 6:
+            self.joint_states = data
+        elif len(data.name) == 1:
+            self.gripper_state = data
         
     def get_ik_client(self, request):
         rospy.wait_for_service('/compute_ik')
@@ -154,8 +163,8 @@ class WidowX:
 
     def move_to_reset(self):
         print('Moving to reset...')
-        plan = self.commander.plan(RESET_VALUES)
-        return self.commander.execute(plan, wait=True)
+        self.move_to_target(RESET_VALUES)
+	rospy.sleep(2.5)
 
     def orient_to_pregrasp(self, x, y):
         angle = np.arctan2(y, x)
@@ -215,11 +224,11 @@ class WidowX:
         ik_request.group_name = "widowx_arm"
 
         
-        joint_goal = self.get_ik_client(ik_request)
+
  
         print("CURRENT POSE: " + str(current_p))
 
-
+        joint_goal = self.get_ik_client(ik_request)
         try:
             plan = self.commander.plan(joint_goal)
         except MoveItCommanderException as e:
@@ -228,8 +237,21 @@ class WidowX:
         success = self.commander.execute(plan, wait=True)
         if not success:
             self.move_to_reset()
-        print("NEW POSE: %s" % (str(self.get_current_pose().pose)))
-        return success
+        
+        '''for i in range(10):
+            joint_goal = self.get_ik_client(ik_request)
+            print(joint_goal)
+            if joint_goal is not None:
+                joint_dict = dict(zip(joint_goal.name, joint_goal.position))
+                joints = [joint_dict[name] for name in self.joint_names]
+                self.move_to_target(joints)
+                rospy.sleep(.5)
+                break
+            else:    
+                print("IK ERROR %d" % i)
+        '''
+        # print("NEW POSE: %s" % (str(self.get_current_pose().pose)))
+        # return success
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose
         current_angle = self.get_joint_values()[4]
@@ -253,8 +275,10 @@ class WidowX:
             return self.commander.execute(plan, wait=True)
 
     def move_to_target(self, target):
-        plan = self.commander.plan(target)
-        return self.commander.execute(plan, wait=True)
+        assert len(target) >= 5, 'Invalid target command'
+        for i, pos in enumerate(target[:5]):
+            self.joint_pubs[i].publish(pos)
+        # self.gripper_pub.publish(target[5])
 
     def sweep_arena(self):
         # self.remove_bounds()
