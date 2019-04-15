@@ -35,11 +35,11 @@ class WidowX:
 
         self.commander.set_end_effector_link('gripper_rail_link')
 
-        self.bounds_floor = .42
-        self.bounds_leftWall = .15
-        self.bounds_rightWall = -.15
-        self.bounds_frontWall = -.15
-        self.bounds_backWall = .15
+        self.bounds_floor = .41
+        self.bounds_leftWall = .14
+        self.bounds_rightWall = -.14
+        self.bounds_frontWall = -.13
+        self.bounds_backWall = .13
         self.joint_state_subscriber = rospy.Subscriber("/joint_states", JointState, self.set_joint_state)
         
         self.joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5', 'gripper_joint']

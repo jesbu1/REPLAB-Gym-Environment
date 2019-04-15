@@ -65,7 +65,7 @@ class ReplabEnv(gym.Env):
         self.position_updated_publisher.publish('received')
 
     def sample_goal_for_rollout(self):
-        return np.random.uniform(low=np.array([-.9, -.18, 0.20]), high=np.array([.9, .18, .35]))
+        return np.random.uniform(low=np.array([-.9, -.18, 0.25]), high=np.array([.9, .18, .40]))
 
     def set_goal(self, goal):
         self.goal = goal
