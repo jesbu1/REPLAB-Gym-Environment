@@ -15,11 +15,16 @@ def activate_widowx():
     
     
 observation_publisher = rospy.Publisher("/replab/action/observation", numpy_msg(Floats), queue_size=1)
-
+joint_names = ['joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5', 'gripper_joint']
 rospy.sleep(2)
 def get_state():
 	pos = widowx.get_current_pose().pose.position
-	return [pos.x, pos.y, pos.z]
+	joints = widowx.joint_state
+	joint_dict = dict(zip(joints.name, joints.position))
+	joints = [joint_dict[name] for name in joint_names]
+	pos = [pos.x, pos.y, pos.z]
+	pos.extend(joints)
+	return pos
 
 def get_reward(goal):
 	""" Reward is negative L2 distance from objective, squared """

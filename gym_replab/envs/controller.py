@@ -326,7 +326,7 @@ class WidowX:
             z <= self.bounds_floor,
             z >= 0.15
         ]
-        print("Target Position: %0.2f, %0.2f, %0.2f" % (x, y, z))
+        print("Target Position: %0.4f, %0.4f, %0.4f" % (x, y, z))
         for condition in conditions:
             if not condition: return
 
@@ -388,7 +388,7 @@ class WidowX:
             z <= self.bounds_floor,
             z >= 0.15
         ]
-        print("Target Position: %0.2f, %0.2f, %0.2f" % (x, y, z))
+        print("Target Position: %0.4f, %0.4f, %0.4f" % (x, y, z))
         for condition in conditions:
             if not condition: return
             
@@ -400,7 +400,7 @@ class WidowX:
         #     return False
 
         self.move_to_target(joint_goal)
-        rospy.sleep(0.3)
+        rospy.sleep(0.15)
         
     def move_to_vertical(self, z, force_orientation=True, shift_factor=1.0):
         current_p = self.commander.get_current_pose().pose

@@ -33,13 +33,15 @@ class ReplabEnv(gym.Env):
 
         self.goal is set to a hardcoded goal if goal_oriented = False
         """
-        observation_space = spaces.Box(low=np.array([-.16, -.15, 0.14]), high=np.array([.16, .15, .41], dtype=np.float32))
+        self.obs_space_low = np.array([-.16, -.15, 0.14, -2.7, -1.6, -1.6, -1.8, -2.7, 0])
+        self.obs_space_high = np.array([.16, .15, .41, 2.7, 1.6, 1.6, 1.8, 2.7, 0.05])
+        observation_space = spaces.Box(low=self.obs_space_low, high=self.obs_space_high, dtype=np.float32)
         self.observation_space = observation_space
         #self.action_space = spaces.Box(low = np.array([-0.05, -0.05, -0.05, -0.005]), high=np.array([0.05, 0.05, 0.05, 0.005]), dtype=np.float32)
         self.action_space = spaces.Box(low=np.array([-0.5, -0.25, -0.25, -0.25, -0.5, -0.005]),
                      high=np.array([0.5, 0.25, 0.25, 0.25, 0.5, 0.005]), dtype=np.float32)
         self.current_pos = None
-        self.goal = np.array([-0.091, 0.0864, 0.322])
+        self.goal = np.array([-.14, -.13, 0.26])
 
     
     def _start_rospy(self, goal_oriented=False):
@@ -53,9 +55,9 @@ class ReplabEnv(gym.Env):
         self.goal_oriented = goal_oriented
         if self.goal_oriented:
             self.observation_space = spaces.Dict(dict(
-               desired_goal=spaces.Box(low=np.array([-.14, -.13, 0.2]), high=np.array([.14, .13, 0.39]), dtype=np.float32),
-               achieved_goal=self.observation_space,
-               observation=self.observation_space,
+               desired_goal=spaces.Box(low=np.array([-.16, -.15, 0.25]), high=np.array([.16, .15, 0.41]), dtype=np.float32),
+               achieved_goal=spaces.Box(low=self.obs_space_low[:3], high=self.obs_space_high[:3], dtype=np.float32),
+               observation=self.observation_space
             ))
         self.reset()
         return self
@@ -65,8 +67,9 @@ class ReplabEnv(gym.Env):
         self.position_updated_publisher.publish('received')
 
     def sample_goal_for_rollout(self):
-        return np.random.uniform(low=np.array([-.9, -.18, 0.25]), high=np.array([.9, .18, .40]))
-
+        return np.random.uniform(low=np.array([-.14, -.13, 0.26]), high=np.array([.14, .13, .39]))
+        #return np.random.uniform(low=np.array([-0.07, -0.07, 0.35]), high=np.array([.07, 0.07, 0.39]))
+        #return np.array([-.14, -.13, 0.26])
     def set_goal(self, goal):
         self.goal = goal
         print(self.goal)
@@ -96,7 +99,7 @@ class ReplabEnv(gym.Env):
         """
         action = np.array(action, dtype=np.float32)
         #target_pos = np.add(action, self.current_pos)
-        self.task_finished = False
+        #self.task_finished = False
         self.action_publisher.publish(action)
         self.current_pos = np.array(rospy.wait_for_message("/replab/action/observation", numpy_msg(Floats)).data)
  
@@ -112,7 +115,8 @@ class ReplabEnv(gym.Env):
             episode_over = True
 
         if self.goal_oriented:
-            return self._get_obs(), reward, episode_over, info
+            obs = self._get_obs()
+            return obs, reward, episode_over, info
 
         return self.current_pos, reward, episode_over, info
 
@@ -128,11 +132,15 @@ class ReplabEnv(gym.Env):
         obs = {}
         obs['observation'] = self.current_pos
         obs['desired_goal'] = self.goal
-        obs['achieved_goal'] = self.current_pos
+        obs['achieved_goal'] = self.current_pos[:3]
         return obs
-
+    def sample_goals(self, num_goals):
+        sampled_goals = np.array([self.sample_goal_for_rollout() for i in range(num_goals)])
+        goals = {}
+        goals['desired_goal'] = sampled_goals
+        return goals
     def _get_reward(self, goal):
-        return - (np.linalg.norm(self.current_pos - goal) ** 2)
+        return - (np.linalg.norm(self.current_pos[:3] - goal) ** 2)
 
     def render(self, mode='human', close=False):
         pass
@@ -218,4 +226,5 @@ class ReplabEnv(gym.Env):
         self.action_publisher = rospy.Publisher("/replab/action", numpy_msg(Floats), queue_size=1)
         self.current_position_subscriber = rospy.Subscriber("/replab/action/observation", numpy_msg(Floats), self.update_position)
         self.__dict__.update(state)
+        #self._start_rospy(goal_oriented=state['goal_oriented'])
         self.reset()
