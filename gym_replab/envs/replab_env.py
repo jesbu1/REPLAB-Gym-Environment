@@ -33,11 +33,10 @@ class ReplabEnv(gym.Env):
 
         self.goal is set to a hardcoded goal if goal_oriented = False
         """
-        self.obs_space_low = np.array([-.16, -.15, 0.14, -2.7, -1.6, -1.6, -1.8, -2.7, 0])
-        self.obs_space_high = np.array([.16, .15, .41, 2.7, 1.6, 1.6, 1.8, 2.7, 0.05])
+        self.obs_space_low = np.array([-.16, -.15, 0.14, -3.1, -1.6, -1.6, -1.8, -3.1, 0])
+        self.obs_space_high = np.array([.16, .15, .41, 3.1, 1.6, 1.6, 1.8, 3.1, 0.05])
         observation_space = spaces.Box(low=self.obs_space_low, high=self.obs_space_high, dtype=np.float32)
         self.observation_space = observation_space
-        #self.action_space = spaces.Box(low = np.array([-0.05, -0.05, -0.05, -0.005]), high=np.array([0.05, 0.05, 0.05, 0.005]), dtype=np.float32)
         self.action_space = spaces.Box(low=np.array([-0.5, -0.25, -0.25, -0.25, -0.5, -0.005]),
                      high=np.array([0.5, 0.25, 0.25, 0.25, 0.5, 0.005]), dtype=np.float32)
         self.current_pos = None
@@ -68,8 +67,7 @@ class ReplabEnv(gym.Env):
 
     def sample_goal_for_rollout(self):
         return np.random.uniform(low=np.array([-.14, -.13, 0.26]), high=np.array([.14, .13, .39]))
-        #return np.random.uniform(low=np.array([-0.07, -0.07, 0.35]), high=np.array([.07, 0.07, 0.39]))
-        #return np.array([-.14, -.13, 0.26])
+
     def set_goal(self, goal):
         self.goal = goal
         print(self.goal)
